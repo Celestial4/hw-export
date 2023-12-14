@@ -44,6 +44,7 @@ if __name__ == "__main__":
 
     config=get_config_info()
     tables=config["tables"]
+    query_field=config["queryField"]
     client = get_connection()
     project_info = get_project_info()
 
@@ -55,27 +56,39 @@ if __name__ == "__main__":
             print("totalCnt: ",totalCnt, "len(rows): ",len(rows))
             rs.extend(rows)
 
-        def process(table_id ,fields , col):
-            condition = [FilterCondition("userId", FilterOperatorType.EQUALS, userid)]
-            sorted_fields=[{"name":"userId","type":"desc"},{"name":"uniqueid","type":"desc"}]
+        def process(table_id ,fields , w_pos_col):
+            condition = [FilterCondition(query_field, FilterOperatorType.EQUALS, userid)]
+            sorted_fields=[{"name":"externalid","type":"desc"}]
             req=SearchTableDataRequest(table_id,filters=condition, desired_size=10000,sorts=sorted_fields,include_fields=fields,giveup_when_more_than=200000,project_id=p_id)
             client.get_bridgedata_provider().query_table_data(req,rows_processor)
 
             #写入sheet表
-            r=1
-            for row in rs:
-                for i,field_name in enumerate(fields):
-                    if(field_name in row):
-                        ws.write(r,i+col,row[field_name])
-                r+=1
+            w_pos_row=1
+            for data in rs:
+                for i,field in enumerate(fields):
+                    names=field.split(".")
+                    
+                    #处理非空数据
+                    if names[0] in data:
+                        res_to_w=""
+                        nextlevel_data=data[names[0]]
+                        res_to_w=nextlevel_data
+                        for j in range(1,len(names)):
+                            next_level=names[j]
+                            res_to_w=nextlevel_data[next_level]
+                            nextlevel_data=res_to_w
+                        #处理非字符串类型的数据
+                        res_to_w=str(res_to_w)
+                        ws.write(w_pos_row,i+w_pos_col,res_to_w)
+                w_pos_row+=1
             #写完后清理数据
             rs.clear()
 
         #开始执行
-        userid=input("输入筛选的userid：")
+        userid=input("输入查询信息：")
 
         if(userid == ""):
-            print("未输入userid，请重新执行！")
+            print("未输入查询信息，请重新执行！")
             sys.exit(1)
 
         wb=xlwt.Workbook()
@@ -90,15 +103,15 @@ if __name__ == "__main__":
             fields = table["fields"]
             print("process table: ",table["table_name"])
             #写表头
-            for j,col_title in enumerate(fields):
-                ws.write(0,start_col+j,fields[j]["alias"])
+            for j,title in enumerate(fields):
+                ws.write(0,start_col+j,title["alias"])
 
             #写实体数据
             process(get_table_id(table),get_fields(fields),start_col)
             start_col+=len(fields)
         
         wb.save(userid+'.xls')
-        cot=input("输入任意键继续，退出输入：n\n")
-        if(cot.lower() == "n"):
+        cot=input("按任意键退出。 输入y/Y继续操作！")
+        if(cot.lower() != "y"):
             flag=False
 #1300-0008199133
