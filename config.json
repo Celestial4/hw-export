@@ -1,0 +1,29 @@
+{
+    "accessKey": "9013ee51b8784e08afd62f749a24969c",
+    "secretKey": "781b764ba71ea43aaa6327d5c3f1f6507b76e1551cff8d0f2d2a99d52ec8091a",
+    "queryField":"externalid",
+    "tables": [
+        {
+            "table_name": "dailyworkout",
+            "table_id": "t_qieqnzit_dailyworkout_system",
+            "fields": [
+                {
+                    "name":"externalid",
+                    "alias":"用户数据ID"
+                },
+                {
+                    "name":"physicalActivity.activityName",
+                    "alias":"活动名称"
+                },
+                {
+                    "name": "physicalActivity.step.value",
+                    "alias": "步数"
+                },
+                {
+                    "name": "physicalActivity.distance.unit",
+                    "alias": "运动距离单位"
+                }
+            ]
+        }
+    ]
+}
