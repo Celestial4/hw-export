@@ -1,6 +1,7 @@
 import xlwt
 import sys
 import json
+from datetime import datetime
 from huaweiresearchsdk.bridge import BridgeClient
 from huaweiresearchsdk.config import BridgeConfig, HttpClientConfig
 from huaweiresearchsdk.model.table import FilterCondition, FilterOperatorType, SearchTableDataRequest, FilterLogicType
@@ -37,8 +38,26 @@ def get_fields(config_field):
         res_fields.append(v["name"])
     return res_fields
 
+def get_timeset(config):
+    res=set()
+    for _,f in enumerate(config):
+        if "istime" in f:
+            res.add(f["name"])
+    return res
+
 def get_table_id(table):
     return table["table_id"]
+
+def process_extinfo(data,field,set):
+    if field in set:
+        try:
+            # 尝试将字符串转换为 datetime 对象
+            res=datetime.fromtimestamp(float(data)/1000)
+            return str(res)
+        except ValueError:
+            # 转换失败，不是有效的时间戳
+            return str(data)
+    return str(data)
 
 if __name__ == "__main__":
 
@@ -47,7 +66,6 @@ if __name__ == "__main__":
     query_field=config["queryField"]
     client = get_connection()
     project_info = get_project_info()
-
     p_id=project_info["id"]
 
     flag=True
@@ -77,8 +95,7 @@ if __name__ == "__main__":
                             next_level=names[j]
                             res_to_w=nextlevel_data[next_level]
                             nextlevel_data=res_to_w
-                        #处理非字符串类型的数据
-                        res_to_w=str(res_to_w)
+                        res_to_w=process_extinfo(res_to_w,field,timeset)
                         ws.write(w_pos_row,i+w_pos_col,res_to_w)
                 w_pos_row+=1
             #写完后清理数据
@@ -97,10 +114,11 @@ if __name__ == "__main__":
         start_col=0
         #用于存储拉取的数据
         rs = list()
-
+        timeset=set()
         for i,table in enumerate(tables):
             #读取配置文件中的表列名
             fields = table["fields"]
+            timeset=timeset.union(get_timeset(fields))
             print("process table: ",table["table_name"])
             #写表头
             for j,title in enumerate(fields):
